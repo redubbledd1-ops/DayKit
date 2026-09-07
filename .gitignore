@@ -1,0 +1,35 @@
+# rommel van het systeem en de editor
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+.idea/
+.vscode/
+*.iml
+*.swp
+*~
+# een geheugendump van de JVM (Android Studio zet hem in de
+# projectmap): honderden MB, en boven de 100 MB weigert GitHub de
+# hele push — ook als het bestand allang weg is, want het staat dan
+# nog in je geschiedenis
+*.hprof
+
+# sleutels en wachtwoorden horen niet in de geschiedenis
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# gradle/android — dit is gegenereerd, het hoort niet in git
+.gradle/
+build/
+*/build/
+.kotlin/
+.cxx/
+captures/
+local.properties
+*.apk
+*.aab
+*.keystore
+*.jks

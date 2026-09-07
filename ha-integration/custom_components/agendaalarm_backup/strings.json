@@ -1,0 +1,97 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Pair DayKit",
+        "description": "Scan this QR code with the DayKit app (Settings > Pair):\n\n![Pairing QR code]({qr_data_uri})\n\nCan't scan? Enter this code manually instead: {code}\n\nValid for 5 minutes. You can also finish setup and pair later from the device page."
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "DayKit",
+        "description": "Pick a section to configure. Everything you change here is sent to the app, which shows an update message so you can accept it - the phone stays in charge."
+      },
+      "entities": {
+        "title": "Entities",
+        "description": "Shared list of handy entities. New entries show up in the app as an update message.",
+        "data": {
+          "entities": "Entities"
+        }
+      },
+      "speaker": {
+        "title": "Alarm speaker",
+        "description": "Speaker used for the calendar alarm, including the Home Assistant watchdog that steps in when the phone is unreachable.",
+        "data": {
+          "speaker_entity_id": "Speaker",
+          "speaker_mode": "Mode",
+          "default_volume": "Volume",
+          "skip_backup_volume": "Leave volume untouched",
+          "default_sound_url": "Sound"
+        }
+      },
+      "timer_speaker": {
+        "title": "Timer speaker",
+        "description": "Speaker used for timers.",
+        "data": {
+          "timer_speaker_entity_id": "Speaker",
+          "timer_speaker_mode": "Mode",
+          "timer_speaker_volume": "Volume",
+          "timer_speaker_skip_volume": "Leave volume untouched",
+          "timer_speaker_sound_url": "Sound"
+        }
+      },
+      "weather_speaker": {
+        "title": "Weather speaker",
+        "description": "Speaker used for weather alerts.",
+        "data": {
+          "weather_speaker_entity_id": "Speaker",
+          "weather_speaker_mode": "Mode",
+          "weather_speaker_volume": "Volume",
+          "weather_speaker_skip_volume": "Leave volume untouched",
+          "weather_speaker_sound_url": "Sound",
+          "weather_tts_enabled": "Read weather alerts out loud"
+        }
+      },
+      "presence": {
+        "title": "Presence",
+        "description": "Which entity tells us whether you are home, and which state means 'home'.",
+        "data": {
+          "presence_entity_id": "Presence entity",
+          "presence_expected_state": "State that means 'home'"
+        }
+      },
+      "out_of_bed": {
+        "title": "Out of bed",
+        "description": "Optional check that keeps the alarm going until you are actually out of bed.",
+        "data": {
+          "out_of_bed_check_enabled": "Out of bed check enabled",
+          "out_of_bed_entity_id": "Bed sensor",
+          "out_of_bed_expected_value": "State that means 'in bed'"
+        }
+      },
+      "scripts": {
+        "title": "Scripts",
+        "description": "Scripts to run when an alarm or timer goes off.",
+        "data": {
+          "alarm_script_entity_id": "Script on alarm",
+          "alarm_script_enabled": "Run script on alarm",
+          "alarm_script_ignore_presence": "Run on alarm even when away",
+          "timer_script_entity_id": "Script on timer",
+          "timer_script_enabled": "Run script on timer",
+          "timer_script_ignore_presence": "Run on timer even when away"
+        }
+      },
+      "defaults": {
+        "title": "Defaults",
+        "description": "Alarm-wide settings that do not belong to one speaker.",
+        "data": {
+          "notify_service": "Notify service (e.g. notify.mobile_app_pixel)",
+          "default_interval": "Backup alarm interval (seconds)",
+          "safety_timeout_seconds": "Safety timeout (seconds)"
+        }
+      }
+    }
+  }
+}

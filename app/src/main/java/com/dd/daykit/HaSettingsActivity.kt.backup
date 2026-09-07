@@ -1,0 +1,188 @@
+﻿package com.dd.daykit
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
+import com.dd.daykit.ui.SettingsScreenTemplate
+import kotlin.math.abs
+
+class HaSettingsActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+
+        setContent {
+            MaterialTheme {
+                HaSettingsScreen { finish() }
+            }
+        }
+    }
+}
+
+@Composable
+fun HaSettingsScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
+
+    val haUrls = remember { mutableStateListOf<String>().also { it.addAll(SettingsManager.getHaUrls(context).split(",").filter { url -> url.isNotBlank() }) } }
+    var haToken by remember { mutableStateOf(TextFieldValue(SettingsManager.getHaToken(context))) }
+    val presentSensors = remember { mutableStateListOf<String>().also { it.addAll(SettingsManager.getPresentSensors(context).split(",").filter { sensor -> sensor.isNotBlank() }) } }
+    val absentSensors = remember { mutableStateListOf<String>().also { it.addAll(SettingsManager.getAbsentSensors(context).split(",").filter { sensor -> sensor.isNotBlank() }) } }
+    
+    val textColor = Color(SettingsManager.getTextColor(context))
+    val buttonColor = Color(SettingsManager.getButtonColor(context))
+    val buttonTextColor = Color(SettingsManager.getButtonTextColor(context))
+    val textAlignment = SettingsManager.getTextAlignment(context)
+    val horizontalAlignment = when {
+        textAlignment.endsWith("_START") -> Alignment.Start
+        textAlignment.endsWith("_END") -> Alignment.End
+        else -> Alignment.CenterHorizontally
+    }
+    val bottomButtonArrangement: Arrangement.Horizontal = when {
+        textAlignment.endsWith("_START") -> Arrangement.Start
+        textAlignment.endsWith("_END") -> Arrangement.End
+        textAlignment.contains("CENTER") -> Arrangement.Center
+        else -> Arrangement.End
+    }
+
+    LaunchedEffect(Unit) {
+        SettingsManager.saveLastVisitedKalenderSubSettingsPage(context, "HA")
+    }
+
+    AppBackground(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                var dragStart = Offset.Zero
+                var isDragConsumed = false
+                detectDragGestures(
+                    onDragStart = {
+                        dragStart = it
+                        isDragConsumed = false
+                    },
+                    onDrag = { change, dragAmount ->
+                        if (!isDragConsumed) {
+                            val dragThreshold = 50f
+                            val horizontalDrag = change.position.x - dragStart.x
+                            val verticalDrag = change.position.y - dragStart.y
+
+                            if (abs(horizontalDrag) > abs(verticalDrag)) {
+                                // Horizontal swipe
+                                if (horizontalDrag > dragThreshold) {
+                                    onBack()
+                                    isDragConsumed = true
+                                }
+                            } else {
+                                // Vertical swipe (Up or Down -> Back)
+                                if (abs(verticalDrag) > dragThreshold) {
+                                    onBack()
+                                    isDragConsumed = true
+                                }
+                            }
+                        }
+                        if (isDragConsumed) change.consume()
+                    }
+                )
+            }
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Swipe indicators - NO Up arrow
+            com.dd.daykit.ui.SwipeIndicators(
+                showRight = true,
+                onSwipeRight = { onBack() }
+            )
+            
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .safeDrawingPadding()
+                    .padding(16.dp),
+                horizontalAlignment = horizontalAlignment
+            ) {
+                Text("Home Assistant Instellingen", style = MaterialTheme.typography.headlineSmall, color = textColor)
+                Spacer(Modifier.height(16.dp))
+                
+                LazyColumn(modifier = Modifier.weight(1f)) {
+                    item {
+                        Text("HA URLs", color = textColor)
+                }
+
+                itemsIndexed(haUrls) { index, item ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedTextField(value = item, onValueChange = { haUrls[index] = it }, modifier = Modifier.weight(1f), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = buttonColor, unfocusedBorderColor = buttonColor.copy(alpha = 0.5f), focusedTextColor = textColor, unfocusedTextColor = textColor, cursorColor = buttonColor))
+                        IconButton(onClick = { haUrls.removeAt(index) }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Verwijder URL", tint = buttonTextColor)
+                        }
+                    }
+                }
+
+                item {
+                    Button(onClick = { haUrls.add("") }, modifier = Modifier.padding(top = 8.dp), colors = ButtonDefaults.buttonColors(containerColor = buttonColor, contentColor = buttonTextColor), border = null) { Text("+") }
+                    Spacer(Modifier.height(16.dp))
+                    Text("HA Long-Lived Token", color = textColor)
+                    OutlinedTextField(value = haToken, onValueChange = { haToken = it }, modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = buttonColor, unfocusedBorderColor = buttonColor.copy(alpha = 0.5f), focusedTextColor = textColor, unfocusedTextColor = textColor, cursorColor = buttonColor))
+                    Spacer(Modifier.height(16.dp))
+                    Text("Sensoren voor 'Uit Bed' (bijv. bewegingssensor gang)", color = textColor)
+                }
+
+                itemsIndexed(presentSensors) { index, item ->
+                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedTextField(value = item, onValueChange = { presentSensors[index] = it }, modifier = Modifier.weight(1f), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = buttonColor, unfocusedBorderColor = buttonColor.copy(alpha = 0.5f), focusedTextColor = textColor, unfocusedTextColor = textColor, cursorColor = buttonColor))
+                        IconButton(onClick = { presentSensors.removeAt(index) }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Verwijder Sensor", tint = buttonTextColor)
+                        }
+                    }
+                }
+
+                 item {
+                    Button(onClick = { presentSensors.add("") }, modifier = Modifier.padding(top = 8.dp), colors = ButtonDefaults.buttonColors(containerColor = buttonColor, contentColor = buttonTextColor), border = null) { Text("+") }
+                    Spacer(Modifier.height(16.dp))
+                    Text("Sensoren voor 'In Bed' (bijv. bedsensor)", color = textColor)
+                }
+
+                itemsIndexed(absentSensors) { index, item ->
+                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedTextField(value = item, onValueChange = { absentSensors[index] = it }, modifier = Modifier.weight(1f), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = buttonColor, unfocusedBorderColor = buttonColor.copy(alpha = 0.5f), focusedTextColor = textColor, unfocusedTextColor = textColor, cursorColor = buttonColor))
+                        IconButton(onClick = { absentSensors.removeAt(index) }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Verwijder Sensor", tint = buttonTextColor)
+                        }
+                    }
+                }
+
+                item {
+                     Button(onClick = { absentSensors.add("") }, modifier = Modifier.padding(top = 8.dp), colors = ButtonDefaults.buttonColors(containerColor = buttonColor, contentColor = buttonTextColor), border = null) { Text("+") }
+                }
+            }
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = bottomButtonArrangement) {
+                Button(onClick = onBack, colors = ButtonDefaults.buttonColors(containerColor = buttonColor, contentColor = buttonTextColor), border = null) { Text("Annuleren") }
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(onClick = {
+                    SettingsManager.saveHaUrls(context, haUrls.joinToString(","))
+                    SettingsManager.saveHaToken(context, haToken.text)
+                    SettingsManager.savePresentSensors(context, presentSensors.joinToString(","))
+                    SettingsManager.saveAbsentSensors(context, absentSensors.joinToString(","))
+                    onBack()
+                }, colors = ButtonDefaults.buttonColors(containerColor = buttonColor, contentColor = buttonTextColor), border = null) { Text("Opslaan") }
+            }
+            }
+        }
+    }
+}

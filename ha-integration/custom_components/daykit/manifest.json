@@ -1,0 +1,11 @@
+{
+  "domain": "daykit",
+  "name": "DayKit",
+  "codeowners": ["@redubbledD"],
+  "config_flow": true,
+  "documentation": "https://github.com/redubbledD/daykit",
+  "issue_tracker": "https://github.com/redubbledD/daykit/issues",
+  "iot_class": "local_push",
+  "requirements": ["qrcode==7.4.2", "icmplib==3.0.4"],
+  "version": "0.7.1"
+}

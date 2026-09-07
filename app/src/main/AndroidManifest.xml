@@ -1,0 +1,329 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Backups terugzetten gebeurt via de SAF-bestandskiezer (ACTION_OPEN_DOCUMENT) en via
+         MediaStore voor de backups die deze app zelf schreef. Daarvoor is geen
+         MANAGE_EXTERNAL_STORAGE ("alle bestanden") nodig; op API <= 32 volstaat READ_EXTERNAL_STORAGE
+         voor de directory-scan. -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Alleen lezen: IP-adres en SSID voor de HTTP-server/HA-koppeling. De app wijzigt nooit de
+         wifi-status, dus CHANGE_WIFI_STATE is niet nodig. -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <!-- Package-visibility (Android 11+/API 30+): zonder deze <queries> declaratie faalt
+         getPackageInfo() voor DD Music altijd met NameNotFoundException, ook als het wél
+         geïnstalleerd is - DdMusicBridge.isInstalled() zou dan altijd false teruggeven. -->
+    <queries>
+        <package android:name="com.musicgraph.musicgraph" />
+    </queries>
+
+    <application
+        android:name=".AgendaWekkerApplication"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@drawable/clockgood"
+        android:roundIcon="@drawable/clockgood"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.AgendaWekker"
+        android:networkSecurityConfig="@xml/network_security_config"
+        tools:targetApi="31">
+
+        <!-- Temporary v1 portrait-only lock. Value is centralized in app/build.gradle.kts. -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:screenOrientation="${appScreenOrientation}">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity android:name=".SettingsActivity" android:exported="false" android:screenOrientation="${appScreenOrientation}" />
+        <activity android:name=".KalenderAlarmInstellingenActivity" android:exported="false" android:screenOrientation="${appScreenOrientation}" />
+        <activity android:name=".AlarmSettingsActivity" android:exported="false" android:screenOrientation="${appScreenOrientation}" />
+        <activity android:name=".HaSettingsActivity" android:exported="false" android:screenOrientation="${appScreenOrientation}" />
+        <activity android:name=".BackupRestoreActivity" android:exported="false" android:screenOrientation="${appScreenOrientation}" />
+        <activity android:name=".DesignSettingsActivity" android:exported="false" android:screenOrientation="${appScreenOrientation}" />
+        <activity android:name=".ClockLayoutActivity" android:exported="false" android:screenOrientation="${appScreenOrientation}" />
+        <activity android:name=".BackgroundSettingsActivity" android:exported="false" android:screenOrientation="${appScreenOrientation}" />
+        <activity android:name=".NewFeatureActivity" android:exported="false" android:screenOrientation="${appScreenOrientation}" />
+        <activity android:name=".TimerActivity" android:exported="false" android:screenOrientation="${appScreenOrientation}" />
+        <activity android:name=".GlobalSettingsActivity" android:exported="false" android:screenOrientation="${appScreenOrientation}" />
+        <activity android:name=".AgendaSettingsActivity" android:exported="false" android:screenOrientation="${appScreenOrientation}" />
+        <activity android:name=".NavigationSettingsActivity" android:exported="false" android:screenOrientation="${appScreenOrientation}" />
+        <activity android:name=".NotificationSettingsActivity" android:exported="false" android:screenOrientation="${appScreenOrientation}" />
+        <activity android:name=".ComponentsActivity" android:exported="false" android:screenOrientation="${appScreenOrientation}" />
+        <activity android:name=".ApplianceCalculatorActivity" android:exported="false" android:screenOrientation="${appScreenOrientation}" />
+        <activity android:name=".UpcomingAlarmsActivity" android:exported="false" android:screenOrientation="${appScreenOrientation}" />
+        <activity android:name=".CalculatorActivity" android:exported="false" android:screenOrientation="${appScreenOrientation}" />
+        <activity android:name=".rules.TriggerRulesActivity" android:exported="false" android:screenOrientation="${appScreenOrientation}" />
+        <activity android:name=".ShortcutsActivity" android:exported="false" android:screenOrientation="${appScreenOrientation}" />
+        <activity android:name=".WeatherActivity" android:exported="false" android:screenOrientation="${appScreenOrientation}" />
+
+        <activity
+            android:name=".WeatherAlertPopupActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:screenOrientation="${appScreenOrientation}" />
+
+        <activity
+            android:name=".RingActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:screenOrientation="${appScreenOrientation}" />
+
+        <activity
+            android:name=".TimerFinishedActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:screenOrientation="${appScreenOrientation}" />
+
+        <!-- Deelt het forensische alarmlogbestand (AgendaAlarmForensics) naar mail/chat.
+             Android/data/ is op Android 11+ niet meer met een bestandsbeheerder te openen,
+             dus zonder deze provider is de log praktisch onbereikbaar voor de gebruiker. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <receiver
+            android:name=".AlarmReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".WeatherDailyAlertReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".WeatherEventAlertReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".PreAlarmReceiver"
+            android:exported="false" />
+        
+        <receiver 
+            android:name=".AlarmActionReceiver"
+            android:exported="false" />
+        
+        <receiver
+            android:name=".TimerStopReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".TimerFinishedActionReceiver"
+            android:exported="false" />
+        
+        <receiver
+            android:name=".StopwatchStopReceiver"
+            android:exported="false" />
+
+        <activity
+            android:name=".StopwatchPopupLockscreenActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:screenOrientation="${appScreenOrientation}" />
+
+        <service
+            android:name=".StopwatchPopupForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Persistent stopwatch countdown popup notification" />
+        </service>
+
+        <receiver
+            android:name=".StopwatchPopupDismissReceiver"
+            android:exported="false" />
+
+        <service
+            android:name=".AlarmService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
+        <activity
+            android:name=".MeldingenSettingsActivity"
+            android:exported="false"
+            android:screenOrientation="${appScreenOrientation}" />
+
+        <activity
+            android:name=".AgendaAlarmPopupLockscreenActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:screenOrientation="${appScreenOrientation}" />
+
+        <service
+            android:name=".AgendaAlarmPopupForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Persistent agenda alarm countdown popup notification" />
+        </service>
+
+        <receiver
+            android:name=".AgendaAlarmPrePopupReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".AgendaAlarmPopupDismissReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".AgendaAlarmLocalDeactivateReceiver"
+            android:exported="false" />
+
+        <service
+            android:name=".ButtonlessNotificationService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Passive buttonless agenda alarm countdown notification" />
+        </service>
+
+        <receiver
+            android:name=".ButtonlessNotificationReceiver"
+            android:exported="false" />
+
+        <service
+            android:name=".SnoozePopupForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Persistent snooze countdown popup notification" />
+        </service>
+
+        <receiver
+            android:name=".SnoozePopupDismissReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".SnoozePopupCancelReceiver"
+            android:exported="false" />
+
+        <service
+            android:name=".TimeEngineService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
+        <service
+            android:name=".TimerPopupForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Persistent timer countdown popup notification" />
+        </service>
+
+        <service
+            android:name=".ExtraTimerForegroundService0"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Persistent extra timer countdown popup notification" />
+        </service>
+
+        <service
+            android:name=".ExtraTimerForegroundService1"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Persistent extra timer countdown popup notification" />
+        </service>
+
+        <receiver
+            android:name=".TimerPopupDismissReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".CalendarUpdateReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.PROVIDER_CHANGED" />
+                <data android:scheme="content" />
+                <data android:host="com.android.calendar" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.dd.daykit.ACTION_ALARM_UPDATED" />
+            </intent-filter>
+        </receiver>
+        
+        <receiver android:name=".BootCompletedReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.TIMEZONE_CHANGED"/>
+                <action android:name="android.intent.action.TIME_CHANGED"/>
+            </intent-filter>
+        </receiver>
+
+        <receiver android:name=".TimerAlarmReceiver" android:exported="false" />
+
+        <!-- Ontvangt de terugkoppeling van DD Music zodra daar een afspeelkeuze gemaakt is
+             voor een gekoppelde trigger (agenda-alarm of timer). Zie DdMusicBridge. -->
+        <receiver
+            android:name=".DdMusicLinkUpdateReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.dd.daykit.ACTION_DD_MUSIC_LINK_UPDATED" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+
+</manifest>

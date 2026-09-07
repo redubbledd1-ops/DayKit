@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DayKit</string>
+
+    <!-- Alarm actions -->
+    <string name="alarm_action_snooze">Sluimeren</string>
+    <string name="alarm_action_dismiss">Sluiten</string>
+    <string name="alarm_action_dismiss_alarm">Sluit alarm</string>
+
+    <!-- Snooze banner -->
+    <string name="snooze_active">Sluimeren actief</string>
+    <string name="snooze_cancel">Sluimeren uitschakelen</string>
+    <string name="snooze_dismiss_cd">Sluimeren stoppen</string>
+
+    <!-- Internal in-app banner (icon-only actions, content descriptions) -->
+    <string name="internal_banner_cd_agenda_snooze">Sluimeren</string>
+    <string name="internal_banner_cd_agenda_stop">Alarm voor dit item uitschakelen</string>
+    <string name="internal_banner_cd_timer_play">Timer hervatten</string>
+    <string name="internal_banner_cd_timer_pause">Timer pauzeren</string>
+    <string name="internal_banner_cd_timer_stop">Timer stoppen</string>
+    <string name="internal_banner_cd_timer_save">Resterende tijd bewaren</string>
+    <string name="internal_banner_cd_stopwatch_start">Stopwatch starten</string>
+    <string name="internal_banner_cd_stopwatch_lap">Ronde</string>
+    <string name="internal_banner_cd_stopwatch_pause">Stopwatch pauzeren</string>
+    <string name="internal_banner_cd_stopwatch_resume">Stopwatch hervatten</string>
+    <string name="internal_banner_cd_stopwatch_save">Stopwatch opslaan en wissen</string>
+    <string name="internal_banner_cd_stopwatch_stop">Stopwatch stoppen zonder op te slaan</string>
+    <string name="internal_banner_cd_open_agenda_alarm">Agenda-alarm openen</string>
+
+    <!-- Home Assistant Settings -->
+    <string name="ha_settings_title">Home Assist instellingen</string>
+    <string name="ha_urls_label">Home Assistant URLs</string>
+    <string name="ha_url_placeholder">http://homeassistant.local:8123</string>
+    <string name="remove">Verwijderen</string>
+    <string name="ha_token_label">Toegangstoken (lange levensduur)</string>
+    <string name="ha_token_placeholder">Plak hier je token</string>
+    
+    <!-- Entities -->
+    <string name="ha_entities_title">Entiteiten</string>
+    <string name="ha_entities_explanation">Voeg handige entiteiten toe die je wilt gebruiken.</string>
+    <string name="ha_entity_id_placeholder">bijv. sensor.slaapkamer_temperatuur</string>
+    <string name="ha_show_only_linked_entities">Toon alleen gekoppelde entiteiten</string>
+    
+    <!-- External Speaker -->
+    <string name="ha_external_speaker_title">Externe speaker</string>
+    <string name="ha_load_speakers">Laad speakers</string>
+    <string name="ha_select_speaker_label">Selecteer speaker.</string>
+    <string name="ha_no_speaker_selected">Geen speaker geselecteerd</string>
+    <string name="ha_error_no_media_players_linked">Geen media_player entiteiten toegevoegd. Voeg ze toe in de lijst hierboven.</string>
+    <string name="ha_speaker_mode_label">Speakermodus</string>
+    <string name="ha_speaker_mode_disabled">Uitgeschakeld</string>
+    <string name="ha_speaker_mode_standard">Standaard (hoofdalarm)</string>
+    <string name="ha_speaker_mode_backup">Alleen backup bij lege batterij</string>
+    <string name="ha_test_speaker">Test speaker</string>
+    
+    <!-- Presence Detection -->
+    <string name="ha_presence_check_title">Aanwezigheidsdetectie</string>
+    <string name="ha_presence_explanation">Controleer of je thuis bent voordat het alarm af gaat.</string>
+    <string name="ha_error_no_presence_entities">Geen aanwezigheidsentiteiten gevonden</string>
+    <string name="ha_load_presence_entities">Laad aanwezigheidsentiteiten</string>
+    <string name="ha_select_presence_entity_label">Selecteer aanwezigheidsentiteit</string>
+    <string name="ha_no_presence_entity_selected">Geen aanwezigheidsentiteit geselecteerd</string>
+    <string name="ha_presence_state_label">Wat is de waarde als je thuis bent?</string>
+    
+    <!-- Connection Testing -->
+    <string name="ha_test_connection">Test verbinding</string>
+    <string name="ha_test_entities">Test entiteiten</string>
+    
+    <!-- General -->
+    <string name="loading">Laden…</string>
+    <string name="save">Opslaan</string>
+    <string name="cancel">Annuleren</string>
+    <string name="close">Sluiten</string>
+    
+    <!-- Modal titles and buttons -->
+    <string name="ha_configure_urls">Home Assist URLs</string>
+    <string name="ha_configure_token">Toegang token</string>
+    <string name="ha_configure_entities">Entiteiten</string>
+    <string name="ha_configure_speaker">Externe speaker</string>
+    <string name="ha_configure_presence">Aanwezigheidsdetectie</string>
+    
+    <!-- Modal messages -->
+    <string name="unsaved_changes_title">Onopgeslagen wijzigingen</string>
+    <string name="unsaved_changes_message">Er zijn onopgeslagen wijzigingen. Weet je zeker dat je wilt annuleren?</string>
+    <string name="unsaved_changes_confirm">Ja, annuleren</string>
+    <string name="unsaved_changes_cancel">Nee, blijf bewerken</string>
+    <string name="settings_saved">Instellingen opgeslagen</string>
+    <string name="validation_error">Controleer de invoer</string>
+    <string name="url_format_error">Ongeldige URL indeling</string>
+    <string name="token_too_short">Token is te kort</string>
+    <string name="show_token">Toon token</string>
+    <string name="hide_token">Verberg token</string>
+
+    <!-- POC foreground countdown notification (temporary; themed from SettingsManager in code) -->
+    <string name="poc_notification_title">%1$s</string>
+    <string name="poc_notification_subtitle">Agenda Alarm Test</string>
+</resources>

@@ -1,0 +1,10 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Pair AgendaAlarm",
+        "description": "Scan this QR code with the AgendaAlarm app (Settings > Pair):\n\n![Pairing QR code]({qr_data_uri})\n\nCan't scan? Enter this code manually instead: {code}\n\nValid for 5 minutes. You can also finish setup and pair later from the device page."
+      }
+    }
+  }
+}

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- <externalFilesDir>/diagnostics/ — hier schrijft AgendaAlarmForensics. -->
+    <external-files-path
+        name="diagnostics"
+        path="diagnostics/" />
+    <!-- Fallback voor toestellen zonder external files dir. -->
+    <files-path
+        name="internal_diagnostics"
+        path="diagnostics/" />
+</paths>

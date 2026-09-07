@@ -1,0 +1,11 @@
+{
+  "domain": "agendaalarm_backup",
+  "name": "AgendaAlarm Backup",
+  "codeowners": ["@redubbledD"],
+  "config_flow": true,
+  "documentation": "https://github.com/redubbledD/agendaalarm-backup",
+  "issue_tracker": "https://github.com/redubbledD/agendaalarm-backup/issues",
+  "iot_class": "local_push",
+  "requirements": ["qrcode==7.4.2", "icmplib==3.0.4"],
+  "version": "0.2.0"
+}
