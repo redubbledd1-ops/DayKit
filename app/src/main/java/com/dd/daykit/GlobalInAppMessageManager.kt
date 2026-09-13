@@ -83,6 +83,7 @@ object GlobalInAppMessageManager {
     private const val MSG_ID_STOPWATCH = "global_stopwatch"
     private const val MSG_ID_AGENDA_ALARM = "global_agenda_alarm"
     private const val PREF_NEXT_ALARM_LABEL = "next_alarm_label"
+    private const val PREF_NEXT_ALARM_TRIGGER_ID = "next_alarm_trigger_id"
 
     // Prefix voor extra-timer banners (2e/3e timer) — 1 bericht per ExtraTimerData.id.
     private const val EXTRA_TIMER_MSG_PREFIX = "global_timer_extra_"
@@ -323,16 +324,18 @@ object GlobalInAppMessageManager {
      * Update agenda alarm message if popup is enabled and alarm is within the configured window.
      */
     private fun updateAgendaAlarmMessage(context: Context) {
+        val nextAlarmTriggerId = getNextAlarmTriggerId(context)
+
         // Check if popup is enabled first
-        val popupEnabled = SettingsManager.getCalendarPopupLast30Min(context)
+        val popupEnabled = SettingsManager.getCalendarPopupLast30Min(context, nextAlarmTriggerId)
         if (!popupEnabled) {
             removeMessage(MSG_ID_AGENDA_ALARM)
             clearDismissed(MSG_ID_AGENDA_ALARM) // Clear when disabled
             return
         }
-        
+
         // Get configured popup window (in minutes), default 30
-        val popupWindowMinutes = SettingsManager.getCalendarPopupWindowMinutes(context)
+        val popupWindowMinutes = SettingsManager.getCalendarPopupWindowMinutes(context, nextAlarmTriggerId)
         val popupWindowMs = popupWindowMinutes * 60 * 1000L
         
         // Get next alarm info from shared preferences or cache
@@ -460,7 +463,7 @@ object GlobalInAppMessageManager {
      * Cache the next alarm time, ID, and optional calendar title for quick access.
      * Call this from AlarmScheduler when scheduling alarms.
      */
-    fun cacheNextAlarmTime(context: Context, alarmTimeMs: Long?, alarmId: Long? = null, alarmLabel: String? = null) {
+    fun cacheNextAlarmTime(context: Context, alarmTimeMs: Long?, alarmId: Long? = null, alarmLabel: String? = null, triggerId: String? = null) {
         try {
             val prefs = context.getSharedPreferences("alarm_cache", Context.MODE_PRIVATE)
             val editor = prefs.edit()
@@ -480,6 +483,11 @@ object GlobalInAppMessageManager {
             } else {
                 editor.remove(PREF_NEXT_ALARM_LABEL)
             }
+            if (!triggerId.isNullOrEmpty()) {
+                editor.putString(PREF_NEXT_ALARM_TRIGGER_ID, triggerId)
+            } else {
+                editor.remove(PREF_NEXT_ALARM_TRIGGER_ID)
+            }
             editor.apply()
             NotificationPopupDebugLog.notification(
                 source = "GlobalInAppMessageManager.cacheNextAlarmTime",
@@ -490,6 +498,15 @@ object GlobalInAppMessageManager {
             )
         } catch (e: Exception) {
             // Ignore
+        }
+    }
+
+    private fun getNextAlarmTriggerId(context: Context): String? {
+        return try {
+            val prefs = context.getSharedPreferences("alarm_cache", Context.MODE_PRIVATE)
+            prefs.getString(PREF_NEXT_ALARM_TRIGGER_ID, null)
+        } catch (e: Exception) {
+            null
         }
     }
 

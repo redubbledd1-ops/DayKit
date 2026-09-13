@@ -300,7 +300,8 @@ object AlarmScheduler {
                         context,
                         alarmWithSound.epochMillis,
                         alarmWithSound.id,
-                        alarmWithSound.label
+                        alarmWithSound.label,
+                        alarmWithSound.triggerId ?: alarmWithSound.snoozeSourceTriggerId
                     )
 
                     scheduleOrStartAgendaPrePopup(context, alarmWithSound)
@@ -354,7 +355,7 @@ object AlarmScheduler {
                 )
                 if (!futureExists) {
                     HomeAssistantSync.clearNextAlarm(context)
-                    GlobalInAppMessageManager.cacheNextAlarmTime(context, null)
+                    GlobalInAppMessageManager.cacheNextAlarmTime(context, null, triggerId = null)
                     cancelAgendaPrePopupAlarm(context)
                     AgendaAlarmPopupForegroundService.stopPopup(context.applicationContext, "no_next_alarm")
                     cancelButtonlessNotificationAlarm(context)
@@ -859,13 +860,14 @@ object AlarmScheduler {
 
     private fun scheduleOrStartAgendaPrePopup(context: Context, alarm: AlarmItem) {
         val app = context.applicationContext
-        if (!SettingsManager.getCalendarPopupLast30Min(app)) {
+        val triggerId = alarm.triggerId ?: alarm.snoozeSourceTriggerId
+        if (!SettingsManager.getCalendarPopupLast30Min(app, triggerId)) {
             cancelAgendaPrePopupAlarm(app)
             AgendaAlarmPopupForegroundService.stopPopup(app, "popup_disabled")
             return
         }
         cancelAgendaPrePopupAlarm(app)
-        val windowMin = SettingsManager.getCalendarPopupWindowMinutes(app).coerceAtLeast(1)
+        val windowMin = SettingsManager.getCalendarPopupWindowMinutes(app, triggerId).coerceAtLeast(1)
         val popupStartTime = alarm.epochMillis - windowMin * 60_000L
         val json = Json.encodeToString(AlarmItem.serializer(), alarm)
         val now = System.currentTimeMillis()
@@ -920,13 +922,14 @@ object AlarmScheduler {
 
     private fun scheduleOrStartButtonlessNotification(context: Context, alarm: AlarmItem) {
         val app = context.applicationContext
-        if (!SettingsManager.getButtonlessNotificationEnabled(app)) {
+        val triggerId = alarm.triggerId ?: alarm.snoozeSourceTriggerId
+        if (!SettingsManager.getButtonlessNotificationEnabled(app, triggerId)) {
             cancelButtonlessNotificationAlarm(app)
             ButtonlessNotificationService.stopNotification(app, "buttonless_disabled")
             return
         }
         cancelButtonlessNotificationAlarm(app)
-        val windowMinutes = SettingsManager.getButtonlessNotificationMinutes(app).coerceAtLeast(120)
+        val windowMinutes = SettingsManager.getButtonlessNotificationMinutes(app, triggerId).coerceAtLeast(120)
         val notifStartTime = alarm.epochMillis - windowMinutes * 60_000L
         val json = Json.encodeToString(AlarmItem.serializer(), alarm)
         val now = System.currentTimeMillis()

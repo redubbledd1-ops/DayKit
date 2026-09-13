@@ -107,13 +107,15 @@ class ButtonlessNotificationService : Service() {
             return
         }
 
-        if (!SettingsManager.getButtonlessNotificationEnabled(this)) {
+        val triggerId = alarm.triggerId ?: alarm.snoozeSourceTriggerId
+
+        if (!SettingsManager.getButtonlessNotificationEnabled(this, triggerId)) {
             shutdown(removeNotification = true, reason = "buttonless_disabled")
             return
         }
 
         val now = System.currentTimeMillis()
-        val windowMs = SettingsManager.getButtonlessNotificationMinutes(this).coerceAtLeast(120) * 60_000L
+        val windowMs = SettingsManager.getButtonlessNotificationMinutes(this, triggerId).coerceAtLeast(120) * 60_000L
         if (alarm.epochMillis <= now) {
             shutdown(removeNotification = true, reason = "alarm_in_past")
             return
@@ -140,7 +142,7 @@ class ButtonlessNotificationService : Service() {
         tickerJob = scope.launch {
             while (isActive) {
                 delay(60_000L)
-                if (!SettingsManager.getButtonlessNotificationEnabled(this@ButtonlessNotificationService)) {
+                if (!SettingsManager.getButtonlessNotificationEnabled(this@ButtonlessNotificationService, triggerId)) {
                     shutdown(removeNotification = true, reason = "buttonless_disabled_mid_run")
                     break
                 }
@@ -161,8 +163,9 @@ class ButtonlessNotificationService : Service() {
 
     /** Zit [now] binnen het venster van de Stop-knop melding ([SettingsManager.getCalendarPopupWindowMinutes])? */
     private fun isWithinStopPopupWindow(alarm: AlarmItem, now: Long): Boolean {
-        if (!SettingsManager.getCalendarPopupLast30Min(this)) return false
-        val stopPopupWindowMs = SettingsManager.getCalendarPopupWindowMinutes(this).coerceAtLeast(1) * 60_000L
+        val triggerId = alarm.triggerId ?: alarm.snoozeSourceTriggerId
+        if (!SettingsManager.getCalendarPopupLast30Min(this, triggerId)) return false
+        val stopPopupWindowMs = SettingsManager.getCalendarPopupWindowMinutes(this, triggerId).coerceAtLeast(1) * 60_000L
         val remainingMs = alarm.epochMillis - now
         return remainingMs in 0..stopPopupWindowMs
     }

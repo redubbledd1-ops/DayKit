@@ -119,13 +119,15 @@ class AgendaAlarmPopupForegroundService : Service() {
             return
         }
 
-        if (!SettingsManager.getCalendarPopupLast30Min(this)) {
+        val triggerId = alarm.triggerId ?: alarm.snoozeSourceTriggerId
+
+        if (!SettingsManager.getCalendarPopupLast30Min(this, triggerId)) {
             shutdown(removeNotification = true, reason = "popup_disabled")
             return
         }
 
         val now = System.currentTimeMillis()
-        val windowMs = SettingsManager.getCalendarPopupWindowMinutes(this).coerceAtLeast(1) * 60_000L
+        val windowMs = SettingsManager.getCalendarPopupWindowMinutes(this, triggerId).coerceAtLeast(1) * 60_000L
         if (alarm.epochMillis <= now) {
             shutdown(removeNotification = true, reason = "alarm_in_past")
             return
@@ -156,7 +158,7 @@ class AgendaAlarmPopupForegroundService : Service() {
             // notify() here re-anchors base on state changes (pause/resume/reset).
             while (isActive) {
                 delay(1_000L)
-                if (!SettingsManager.getCalendarPopupLast30Min(this@AgendaAlarmPopupForegroundService)) {
+                if (!SettingsManager.getCalendarPopupLast30Min(this@AgendaAlarmPopupForegroundService, triggerId)) {
                     shutdown(removeNotification = true, reason = "popup_disabled_mid_run")
                     break
                 }

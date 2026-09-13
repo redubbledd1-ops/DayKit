@@ -22,16 +22,19 @@ class MeldingenSettingsActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         SettingsManager.applySystemBarColors(window, this)
 
+        val triggerId = intent.getStringExtra("TRIGGER_ID")
+        val triggerName = intent.getStringExtra("TRIGGER_NAME")
+
         setContent {
             MaterialTheme {
-                MeldingenSettingsScreen(onBack = { finish() })
+                MeldingenSettingsScreen(triggerId = triggerId, triggerName = triggerName, onBack = { finish() })
             }
         }
     }
 }
 
 @Composable
-fun MeldingenSettingsScreen(onBack: () -> Unit) {
+fun MeldingenSettingsScreen(triggerId: String? = null, triggerName: String? = null, onBack: () -> Unit) {
     val ctx = LocalContext.current
 
     val currentLanguage by LanguageManager.currentLanguage
@@ -43,11 +46,11 @@ fun MeldingenSettingsScreen(onBack: () -> Unit) {
     val textAlignment = SettingsManager.getTextAlignment(ctx)
     val titleTextAlign = getTextAlign(textAlignment)
 
-    var popupEnabled by remember { mutableStateOf(SettingsManager.getCalendarPopupLast30Min(ctx)) }
-    var popupWindowMinutes by remember { mutableStateOf(SettingsManager.getCalendarPopupWindowMinutes(ctx)) }
+    var popupEnabled by remember { mutableStateOf(SettingsManager.getCalendarPopupLast30Min(ctx, triggerId)) }
+    var popupWindowMinutes by remember { mutableStateOf(SettingsManager.getCalendarPopupWindowMinutes(ctx, triggerId)) }
 
-    var buttonlessEnabled by remember { mutableStateOf(SettingsManager.getButtonlessNotificationEnabled(ctx)) }
-    var buttonlessMinutes by remember { mutableStateOf(SettingsManager.getButtonlessNotificationMinutes(ctx)) }
+    var buttonlessEnabled by remember { mutableStateOf(SettingsManager.getButtonlessNotificationEnabled(ctx, triggerId)) }
+    var buttonlessMinutes by remember { mutableStateOf(SettingsManager.getButtonlessNotificationMinutes(ctx, triggerId)) }
 
     AppBackground(
         modifier = Modifier.fillMaxSize()
@@ -61,7 +64,11 @@ fun MeldingenSettingsScreen(onBack: () -> Unit) {
                 horizontalAlignment = getHorizontalAlignment(textAlignment)
             ) {
                 Text(
-                    LanguageManager.getString("ka_meldingen"),
+                    if (!triggerName.isNullOrBlank()) {
+                        "${LanguageManager.getString("ka_meldingen")} - $triggerName"
+                    } else {
+                        LanguageManager.getString("ka_meldingen")
+                    },
                     style = MaterialTheme.typography.headlineLarge,
                     color = textColor,
                     textAlign = titleTextAlign,
@@ -87,7 +94,7 @@ fun MeldingenSettingsScreen(onBack: () -> Unit) {
                         checked = popupEnabled,
                         onCheckedChange = {
                             popupEnabled = it
-                            SettingsManager.saveCalendarPopupLast30Min(ctx, it)
+                            SettingsManager.saveCalendarPopupLast30Min(ctx, triggerId, it)
                             ctx.sendBroadcast(
                                 Intent(CalendarUpdateReceiver.ACTION_ALARM_UPDATED)
                                     .setPackage(ctx.packageName)
@@ -129,7 +136,7 @@ fun MeldingenSettingsScreen(onBack: () -> Unit) {
                             )
                         },
                         onValueChangeFinished = {
-                            SettingsManager.saveCalendarPopupWindowMinutes(ctx, popupWindowMinutes)
+                            SettingsManager.saveCalendarPopupWindowMinutes(ctx, triggerId, popupWindowMinutes)
                             ctx.sendBroadcast(
                                 Intent(CalendarUpdateReceiver.ACTION_ALARM_UPDATED)
                                     .setPackage(ctx.packageName)
@@ -163,7 +170,7 @@ fun MeldingenSettingsScreen(onBack: () -> Unit) {
                         checked = buttonlessEnabled,
                         onCheckedChange = {
                             buttonlessEnabled = it
-                            SettingsManager.saveButtonlessNotificationEnabled(ctx, it)
+                            SettingsManager.saveButtonlessNotificationEnabled(ctx, triggerId, it)
                             ctx.sendBroadcast(
                                 Intent(CalendarUpdateReceiver.ACTION_ALARM_UPDATED)
                                     .setPackage(ctx.packageName)
@@ -199,10 +206,10 @@ fun MeldingenSettingsScreen(onBack: () -> Unit) {
                             buttonlessMinutes = (Math.round(raw / 30f) * 30).coerceIn(120, 840)
                         },
                         onValueChangeFinished = {
-                            SettingsManager.saveButtonlessNotificationMinutes(ctx, buttonlessMinutes)
+                            SettingsManager.saveButtonlessNotificationMinutes(ctx, triggerId, buttonlessMinutes)
                             // De Stop-knop melding mag nooit langer zijn dan dit venster - als het
                             // hierdoor is teruggeklemd, neem de opgeslagen waarde over.
-                            popupWindowMinutes = SettingsManager.getCalendarPopupWindowMinutes(ctx)
+                            popupWindowMinutes = SettingsManager.getCalendarPopupWindowMinutes(ctx, triggerId)
                             ctx.sendBroadcast(
                                 Intent(CalendarUpdateReceiver.ACTION_ALARM_UPDATED)
                                     .setPackage(ctx.packageName)

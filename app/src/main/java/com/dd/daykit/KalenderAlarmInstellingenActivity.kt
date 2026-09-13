@@ -262,19 +262,6 @@ fun KalenderAlarmInstellingenScreen(onBack: () -> Unit) {
                     Text(LanguageManager.getString("clock_layout"))
                 }
 
-                Spacer(Modifier.height(12.dp))
-
-                Button(
-                    onClick = {
-                        SettingsManager.saveLastVisitedKalenderSubSettingsPage(ctx, "MELDINGEN")
-                        ctx.startActivity(Intent(ctx, MeldingenSettingsActivity::class.java))
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = buttonColor, contentColor = buttonTextColor),
-                ) {
-                    Text(LanguageManager.getString("ka_meldingen"))
-                }
-                
             }
             
             // Pijl omhoog (Bovenaan)

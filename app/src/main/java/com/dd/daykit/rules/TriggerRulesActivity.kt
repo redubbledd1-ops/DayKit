@@ -295,8 +295,25 @@ fun TriggerRulesScreen(
                         HorizontalDivider(color = textColor.copy(alpha = 0.3f))
                     }
 
+                    // 5. Meldingen (per trigger)
+                    item {
+                        Button(
+                            onClick = {
+                                val intent = Intent(context, com.dd.daykit.MeldingenSettingsActivity::class.java).apply {
+                                    putExtra("TRIGGER_ID", uiState.triggerId)
+                                    putExtra("TRIGGER_NAME", uiState.triggerName)
+                                }
+                                context.startActivity(intent)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = buttonColor, contentColor = buttonTextColor)
+                        ) {
+                            Text(LanguageManager.getString("ka_meldingen"))
+                        }
+                    }
+
                     // --- MODE SELECTIE (Bestaande content) ---
-                    
+
                     item {
                          if (uiState.isFirstTimeSetup) {
                             Text(

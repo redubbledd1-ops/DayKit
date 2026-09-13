@@ -781,6 +781,102 @@ object SettingsManager {
         }
     }
 
+    // --- Per-trigger overrides voor Meldingen (agenda alarm triggers) ---
+    // Ontbreekt de override-key voor een trigger, dan valt terug op de globale waarde hierboven.
+    private fun triggerOverrideKey(base: String, triggerId: String) = "${base}__trigger_$triggerId"
+
+    fun getCalendarPopupLast30Min(context: Context, triggerId: String?): Boolean {
+        if (triggerId != null) {
+            val prefs = getPrefs(context)
+            val key = triggerOverrideKey("calendar_popup_last_30_min", triggerId)
+            if (prefs.contains(key)) return prefs.getBoolean(key, DEFAULT_CALENDAR_POPUP_LAST_ENABLED)
+        }
+        return getCalendarPopupLast30Min(context)
+    }
+
+    fun saveCalendarPopupLast30Min(context: Context, triggerId: String?, enabled: Boolean) {
+        if (triggerId == null) {
+            saveCalendarPopupLast30Min(context, enabled)
+            return
+        }
+        getPrefs(context).edit().putBoolean(triggerOverrideKey("calendar_popup_last_30_min", triggerId), enabled).apply()
+    }
+
+    fun getCalendarPopupWindowAllowedMax(context: Context, triggerId: String?): Int {
+        return getButtonlessNotificationMinutes(context, triggerId)
+            .coerceIn(CALENDAR_POPUP_WINDOW_MIN_MINUTES, CALENDAR_POPUP_WINDOW_MAX_MINUTES)
+    }
+
+    fun getCalendarPopupWindowMinutes(context: Context, triggerId: String?): Int {
+        val allowedMax = getCalendarPopupWindowAllowedMax(context, triggerId)
+        if (triggerId != null) {
+            val prefs = getPrefs(context)
+            val key = triggerOverrideKey("calendar_popup_window_minutes", triggerId)
+            if (prefs.contains(key)) {
+                return prefs.getInt(key, DEFAULT_CALENDAR_POPUP_WINDOW_MINUTES).coerceIn(CALENDAR_POPUP_WINDOW_MIN_MINUTES, allowedMax)
+            }
+        }
+        return getCalendarPopupWindowMinutes(context).coerceIn(CALENDAR_POPUP_WINDOW_MIN_MINUTES, allowedMax)
+    }
+
+    fun saveCalendarPopupWindowMinutes(context: Context, triggerId: String?, minutes: Int) {
+        if (triggerId == null) {
+            saveCalendarPopupWindowMinutes(context, minutes)
+            return
+        }
+        val allowedMax = getCalendarPopupWindowAllowedMax(context, triggerId)
+        val clamped = minutes.coerceIn(CALENDAR_POPUP_WINDOW_MIN_MINUTES, allowedMax)
+        getPrefs(context).edit().putInt(triggerOverrideKey("calendar_popup_window_minutes", triggerId), clamped).apply()
+    }
+
+    fun getButtonlessNotificationEnabled(context: Context, triggerId: String?): Boolean {
+        if (triggerId != null) {
+            val prefs = getPrefs(context)
+            val key = triggerOverrideKey("buttonless_notification_enabled", triggerId)
+            if (prefs.contains(key)) return prefs.getBoolean(key, DEFAULT_BUTTONLESS_NOTIFICATION_ENABLED)
+        }
+        return getButtonlessNotificationEnabled(context)
+    }
+
+    fun saveButtonlessNotificationEnabled(context: Context, triggerId: String?, enabled: Boolean) {
+        if (triggerId == null) {
+            saveButtonlessNotificationEnabled(context, enabled)
+            return
+        }
+        getPrefs(context).edit().putBoolean(triggerOverrideKey("buttonless_notification_enabled", triggerId), enabled).apply()
+    }
+
+    fun getButtonlessNotificationMinutes(context: Context, triggerId: String?): Int {
+        if (triggerId != null) {
+            val prefs = getPrefs(context)
+            val key = triggerOverrideKey("buttonless_notification_minutes", triggerId)
+            if (prefs.contains(key)) {
+                val stored = prefs.getInt(key, -1)
+                if (stored >= 0) return stored.coerceIn(120, 840)
+            }
+        }
+        return getButtonlessNotificationMinutes(context)
+    }
+
+    fun saveButtonlessNotificationMinutes(context: Context, triggerId: String?, minutes: Int) {
+        if (triggerId == null) {
+            saveButtonlessNotificationMinutes(context, minutes)
+            return
+        }
+        val clamped = minutes.coerceIn(120, 840)
+        getPrefs(context).edit().putInt(triggerOverrideKey("buttonless_notification_minutes", triggerId), clamped).apply()
+        // Zelfde klem-regel als de globale versie, maar dan alleen op de override van deze trigger.
+        val prefs = getPrefs(context)
+        val popupKey = triggerOverrideKey("calendar_popup_window_minutes", triggerId)
+        if (prefs.contains(popupKey)) {
+            val currentPopupWindow = prefs.getInt(popupKey, DEFAULT_CALENDAR_POPUP_WINDOW_MINUTES)
+            val allowedMax = getCalendarPopupWindowAllowedMax(context, triggerId)
+            if (currentPopupWindow > allowedMax) {
+                saveCalendarPopupWindowMinutes(context, triggerId, allowedMax)
+            }
+        }
+    }
+
     // Global popup notification setting
     fun getGlobalPopupEnabled(context: Context): Boolean {
         return getPrefs(context).getBoolean("global_popup_enabled", false)
