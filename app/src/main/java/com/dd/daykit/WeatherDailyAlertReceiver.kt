@@ -104,18 +104,16 @@ class WeatherDailyAlertReceiver : BroadcastReceiver() {
                 ) return
                 val threshold = SettingsManager.getWeatherTempChangeThreshold(context)
                 val tomorrow = today.plusDays(1)
-                val dayAfter = today.plusDays(2)
+                val maxToday = computeMaxTempForDate(forecast, today) ?: return
                 val maxTomorrow = computeMaxTempForDate(forecast, tomorrow) ?: return
-                val maxDayAfter = computeMaxTempForDate(forecast, dayAfter) ?: return
-                val diff = maxDayAfter - maxTomorrow
+                val diff = maxTomorrow - maxToday
                 if (kotlin.math.abs(diff) < threshold) return
-                // Deze melding gaat over OVERMORGEN, vergeleken met morgen - hij waarschuwt een dag
-                // eerder dan de "Zelfde dag"-variant hieronder. De tekst zei desondanks "morgen"
-                // en "dan vandaag".
+                // Zelfde inhoud als de "Zelfde dag"-variant hieronder (morgen t.o.v. vandaag), maar
+                // dan een dag eerder verstuurd.
                 WeatherAlertWorker.deliverAlert(
                     context,
-                    formatTempChangeTitle(context, maxDayAfter, WeatherAlertDay.DAY_AFTER_TOMORROW),
-                    formatTempChangeMessage(diff, threshold, comparedToTomorrow = true),
+                    formatTempChangeTitle(context, maxTomorrow, WeatherAlertDay.TOMORROW),
+                    formatTempChangeMessage(diff, threshold),
                     notificationKey = 33
                 )
             }
