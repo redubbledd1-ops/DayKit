@@ -64,6 +64,8 @@ class StopwatchPopupLockscreenActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        // Matches the pure-black Box surface in this Activity (not the global theme background).
+        SettingsManager.applyAlarmOverlaySystemBarColors(window, android.graphics.Color.BLACK)
         setShowWhenLocked(true)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setTurnScreenOn(true)

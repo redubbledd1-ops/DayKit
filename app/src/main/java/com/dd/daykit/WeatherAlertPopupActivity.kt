@@ -48,6 +48,8 @@ class WeatherAlertPopupActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        // Matches the app's background color used by WeatherAlertPopupScreen below.
+        SettingsManager.applySystemBarColors(window, this)
 
         setShowWhenLocked(true)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
