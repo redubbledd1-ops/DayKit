@@ -104,6 +104,8 @@ private sealed class WeatherUiState {
         val minutesUntilEvent: Long? = null,
         val eventName: String? = null,
         val eventTimeStr: String? = null,
+        /** Over welke dag de gekoppelde afspraak gaat; bepaalt o.a. "Morgen" i.p.v. een aftelling. */
+        val eventDay: WeatherAlertDay? = null,
         val currentTemp: Double? = null,
         val todayMinTemp: Double? = null,
         val todayMaxTemp: Double? = null,
@@ -165,8 +167,13 @@ private suspend fun loadWeatherUiState(
     val nextEventTempChange = if (!linkToCalendar || tempChangeCalendarIds.isEmpty()) {
         null
     } else {
-        getUpcomingWakeUpEvents(context, CalendarView.NEXT_7_DAYS, tempChangeCalendarIds)
-            .firstOrNull { it.epochMillis > now }
+        pickTempChangeAnchorEvent(
+            events = getUpcomingWakeUpEvents(context, CalendarView.NEXT_7_DAYS, tempChangeCalendarIds),
+            nowMillis = now,
+            dayBeforeEnabled = SettingsManager.getWeatherTempChangeAlertDayBeforeEnabled(context),
+            sameDayEnabled = SettingsManager.getWeatherTempChangeAlertSameDayEnabled(context),
+            firstEventEnabled = SettingsManager.getWeatherTempChangeAlertFirstEventEnabled(context)
+        )
     }
 
     val lat = SettingsManager.getWeatherLatitude(context)
@@ -184,7 +191,16 @@ private suspend fun loadWeatherUiState(
     val (todayMinTemp, todayMaxTemp) = if (forecast != null) computeTodayMinMaxTemp(forecast) else null to null
     val eveningSwitchTime = SettingsManager.getWeatherEveningSwitchTime(context)
     val eveningTempChangeMessage = if (forecast != null) {
-        computeEveningTempChangeMessage(forecast, tempChangeEnabled, tempThreshold, eveningSwitchTime)
+        // Agenda gekoppeld + alleen dag-van-tevoren: geen avondtekst als morgen geen afspraak heeft.
+        val calendarLinked = linkToCalendar && tempChangeCalendarIds.isNotEmpty()
+        val dayBeforeOnly = SettingsManager.getWeatherTempChangeAlertDayBeforeEnabled(context) &&
+            !SettingsManager.getWeatherTempChangeAlertSameDayEnabled(context) &&
+            !SettingsManager.getWeatherTempChangeAlertFirstEventEnabled(context)
+        if (calendarLinked && dayBeforeOnly && nextEventTempChange == null) {
+            null
+        } else {
+            computeEveningTempChangeMessage(forecast, tempChangeEnabled, tempThreshold, eveningSwitchTime)
+        }
     } else null
 
     // Morgen alleen tonen naast vandaag als dat ook echt nieuwe/nuttige info toevoegt: vandaag
@@ -257,7 +273,8 @@ private suspend fun loadWeatherUiState(
                     alerts = alerts,
                     minutesUntilEvent = (nextEventBadWeather.epochMillis - now) / 60_000L,
                     eventName = nextEventBadWeather.label,
-                    eventTimeStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(nextEventBadWeather.epochMillis)),
+                    eventTimeStr = formatLinkedEventTime(nextEventBadWeather.epochMillis, now),
+                    eventDay = weatherAlertDayFor(nextEventBadWeather.epochMillis, now),
                     currentTemp = currentWeather?.temperature,
                     todayMinTemp = todayMinTemp,
                     todayMaxTemp = todayMaxTemp,
@@ -267,29 +284,38 @@ private suspend fun loadWeatherUiState(
         }
     }
 
-    // Temperatuurwissel: tegen het (eventueel eigen) eerstvolgende event van die selectie.
-    // Alleen als kaart op het startscherm tonen als dat event binnen 24 uur is — verder weg is
-    // een "groot temperatuurverschil"-melding op het startscherm niet zinvol.
+    // Temperatuurwissel: tegen het anker-event van de ingeschakelde meldingsoorten.
+    // "Dag van tevoren" kijkt naar MORGEN (niet naar de eerstvolgende afspraak van vandaag),
+    // en vergelijkt hetzelfde kloktijdstip vandaag met morgen. Zonder afspraak morgen geen kaart.
     var tempChangeWarning: WeatherUiState.Warning? = null
-    if (tempChangeEnabled && nextEventTempChange != null && (nextEventTempChange.epochMillis - now) <= 24 * 60 * 60 * 1000L) {
-        val tomorrowMillis = nextEventTempChange.epochMillis + 24 * 60 * 60 * 1000L
-        val diff = repo.getTemperatureChange(lat, lon, nextEventTempChange.epochMillis, tomorrowMillis, weatherModel)
-            .getOrNull() ?: 0.0
-        if (kotlin.math.abs(diff) >= tempThreshold) {
-            val tempEventWeather = repo.getWeatherForTime(lat, lon, nextEventTempChange.epochMillis, weatherModel).getOrNull()
-            tempChangeWarning = WeatherUiState.Warning(
-                alerts = listOf(WeatherAlert(
-                    WeatherReason.flat(LanguageManager.getString("weather_temp_change_expected")),
-                    conditionIcon(tempEventWeather?.condition, tempEventWeather?.weatherCode, tempEventWeather?.temperature),
-                )),
-                minutesUntilEvent = (nextEventTempChange.epochMillis - now) / 60_000L,
-                eventName = nextEventTempChange.label,
-                eventTimeStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(nextEventTempChange.epochMillis)),
-                currentTemp = currentWeather?.temperature,
-                todayMinTemp = todayMinTemp,
-                todayMaxTemp = todayMaxTemp,
-                currentRainChance = effectiveRainChance
-            )
+    if (tempChangeEnabled && nextEventTempChange != null) {
+        val eventDay = weatherAlertDayFor(nextEventTempChange.epochMillis, now)
+        val inHorizon = when (eventDay) {
+            WeatherAlertDay.TOMORROW -> SettingsManager.getWeatherTempChangeAlertDayBeforeEnabled(context)
+            WeatherAlertDay.TODAY -> true
+            else -> (nextEventTempChange.epochMillis - now) <= 24 * 60 * 60 * 1000L
+        }
+        if (inHorizon) {
+            val (fromMillis, toMillis) = tempChangeCompareTimes(nextEventTempChange.epochMillis, now)
+            val diff = repo.getTemperatureChange(lat, lon, fromMillis, toMillis, weatherModel)
+                .getOrNull() ?: 0.0
+            if (kotlin.math.abs(diff) >= tempThreshold) {
+                val tempEventWeather = repo.getWeatherForTime(lat, lon, toMillis, weatherModel).getOrNull()
+                tempChangeWarning = WeatherUiState.Warning(
+                    alerts = listOf(WeatherAlert(
+                        WeatherReason.flat(LanguageManager.getString("weather_temp_change_expected")),
+                        conditionIcon(tempEventWeather?.condition, tempEventWeather?.weatherCode, tempEventWeather?.temperature),
+                    )),
+                    minutesUntilEvent = (nextEventTempChange.epochMillis - now) / 60_000L,
+                    eventName = nextEventTempChange.label,
+                    eventTimeStr = formatLinkedEventTime(nextEventTempChange.epochMillis, now),
+                    eventDay = eventDay,
+                    currentTemp = currentWeather?.temperature,
+                    todayMinTemp = todayMinTemp,
+                    todayMaxTemp = todayMaxTemp,
+                    currentRainChance = effectiveRainChance
+                )
+            }
         }
     }
 
@@ -433,6 +459,80 @@ fun weatherAlertDayFor(targetMillis: Long, nowMillis: Long = System.currentTimeM
         1L -> WeatherAlertDay.TOMORROW
         2L -> WeatherAlertDay.DAY_AFTER_TOMORROW
         else -> WeatherAlertDay.TODAY
+    }
+}
+
+/**
+ * Welk agenda-item de temperatuurwissel-kaart (en de dagelijkse dag-van-tevoren/zelfde-dag
+ * melding bij een gekoppelde agenda) moet gebruiken.
+ *
+ * Alleen "dag van tevoren": kijk uitsluitend naar MORGEN. Een afspraak van vandaag die morgen
+ * niet bestaat, mag geen melding geven — je bent dan morgen op dat tijdstip niet buiten.
+ * Andersom wél: geen afspraak vandaag, wel morgen 15:00 → die 15:00 is het anker, en de
+ * temperatuur van vandaag op datzelfde kloktijdstip is de vergelijking.
+ *
+ * "Zelfde dag" / "melding voor agenda-item": eerst resterende afspraak vandaag.
+ */
+fun pickTempChangeAnchorEvent(
+    events: List<AlarmItem>,
+    nowMillis: Long,
+    dayBeforeEnabled: Boolean,
+    sameDayEnabled: Boolean,
+    firstEventEnabled: Boolean
+): AlarmItem? {
+    val zone = java.time.ZoneId.systemDefault()
+    val today = java.time.Instant.ofEpochMilli(nowMillis).atZone(zone).toLocalDate()
+    val tomorrow = today.plusDays(1)
+
+    fun onDate(date: java.time.LocalDate, afterMillis: Long = Long.MIN_VALUE): List<AlarmItem> =
+        events.filter {
+            it.epochMillis > afterMillis &&
+                java.time.Instant.ofEpochMilli(it.epochMillis).atZone(zone).toLocalDate() == date
+        }
+
+    val tomorrowEvents = onDate(tomorrow)
+    val todayEvents = onDate(today, nowMillis)
+
+    if (dayBeforeEnabled && !sameDayEnabled && !firstEventEnabled) {
+        return tomorrowEvents.firstOrNull()
+    }
+    if (sameDayEnabled || firstEventEnabled) {
+        todayEvents.firstOrNull()?.let { return it }
+        if (firstEventEnabled) {
+            return events.firstOrNull { it.epochMillis > nowMillis }
+        }
+    }
+    if (dayBeforeEnabled) return tomorrowEvents.firstOrNull()
+    return null
+}
+
+/**
+ * Tijdstippen voor de temperatuurvergelijking bij [eventMillis]: eerder (vergelijkingsdag) naar
+ * later (anker-dag).
+ *
+ * Afspraak morgen: zelfde kloktijd vandaag vs de afspraak. Afspraak vandaag: de afspraak vs
+ * zelfde kloktijd morgen. Via kalenderdagen, niet +24u in milliseconden, zodat een DST-wissel
+ * het uur niet verschuift.
+ */
+fun tempChangeCompareTimes(eventMillis: Long, nowMillis: Long): Pair<Long, Long> {
+    val zone = java.time.ZoneId.systemDefault()
+    val eventZoned = java.time.Instant.ofEpochMilli(eventMillis).atZone(zone)
+    val today = java.time.Instant.ofEpochMilli(nowMillis).atZone(zone).toLocalDate()
+    val daysAhead = java.time.temporal.ChronoUnit.DAYS.between(today, eventZoned.toLocalDate())
+    return if (daysAhead >= 1L) {
+        eventZoned.minusDays(daysAhead).toInstant().toEpochMilli() to eventMillis
+    } else {
+        eventMillis to eventZoned.plusDays(1).toInstant().toEpochMilli()
+    }
+}
+
+/** "15:00", of "Morgen 15:00" als de gekoppelde afspraak morgen is. */
+fun formatLinkedEventTime(eventMillis: Long, nowMillis: Long): String {
+    val clock = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(eventMillis))
+    return if (weatherAlertDayFor(eventMillis, nowMillis) == WeatherAlertDay.TOMORROW) {
+        "${LanguageManager.getString("weather_tomorrow_prefix")} $clock"
+    } else {
+        clock
     }
 }
 
@@ -4589,6 +4689,7 @@ private fun WeatherWarningContent(state: WeatherUiState.Warning, textColor: Colo
     val minutesUntilEvent = state.minutesUntilEvent
     val minutesText = when {
         minutesUntilEvent == null -> null
+        state.eventDay == WeatherAlertDay.TOMORROW -> LanguageManager.getString("weather_tomorrow_prefix")
         minutesUntilEvent < 1 -> LanguageManager.getString("weather_now")
         minutesUntilEvent < 60 -> LanguageManager.getString("weather_in_minutes").replace("{min}", minutesUntilEvent.toString())
         else -> {

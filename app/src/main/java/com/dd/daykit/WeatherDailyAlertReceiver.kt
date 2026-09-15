@@ -102,18 +102,9 @@ class WeatherDailyAlertReceiver : BroadcastReceiver() {
                 if (!SettingsManager.getWeatherTempChangeEnabled(context) ||
                     !SettingsManager.getWeatherTempChangeAlertDayBeforeEnabled(context)
                 ) return
-                val threshold = SettingsManager.getWeatherTempChangeThreshold(context)
-                val tomorrow = today.plusDays(1)
-                val maxToday = computeMaxTempForDate(forecast, today) ?: return
-                val maxTomorrow = computeMaxTempForDate(forecast, tomorrow) ?: return
-                val diff = maxTomorrow - maxToday
-                if (kotlin.math.abs(diff) < threshold) return
-                // Zelfde inhoud als de "Zelfde dag"-variant hieronder (morgen t.o.v. vandaag), maar
-                // dan een dag eerder verstuurd.
-                WeatherAlertWorker.deliverAlert(
-                    context,
-                    formatTempChangeTitle(context, maxTomorrow, WeatherAlertDay.TOMORROW),
-                    formatTempChangeMessage(diff, threshold),
+                deliverTempChangeDailyAlert(
+                    context, repo, forecast, lat, lon, model, now, today,
+                    targetIsTomorrow = true,
                     notificationKey = 33
                 )
             }
@@ -121,20 +112,76 @@ class WeatherDailyAlertReceiver : BroadcastReceiver() {
                 if (!SettingsManager.getWeatherTempChangeEnabled(context) ||
                     !SettingsManager.getWeatherTempChangeAlertSameDayEnabled(context)
                 ) return
-                val threshold = SettingsManager.getWeatherTempChangeThreshold(context)
-                val tomorrow = today.plusDays(1)
-                val maxToday = computeMaxTempForDate(forecast, today) ?: return
-                val maxTomorrow = computeMaxTempForDate(forecast, tomorrow) ?: return
-                val diff = maxTomorrow - maxToday
-                if (kotlin.math.abs(diff) < threshold) return
-                // Gaat over morgen, vergeleken met vandaag - "morgen" hoort hier dus wél in de titel.
-                WeatherAlertWorker.deliverAlert(
-                    context,
-                    formatTempChangeTitle(context, maxTomorrow, WeatherAlertDay.TOMORROW),
-                    formatTempChangeMessage(diff, threshold),
+                deliverTempChangeDailyAlert(
+                    context, repo, forecast, lat, lon, model, now, today,
+                    targetIsTomorrow = false,
                     notificationKey = 34
                 )
             }
         }
+    }
+
+    /**
+     * Dagelijkse temperatuurwissel-melding (dag van tevoren / dezelfde dag).
+     *
+     * Agenda gekoppeld: alleen als er op de anker-dag een afspraak staat. Dag van tevoren
+     * ([targetIsTomorrow] = true) kijkt naar MORGEN en vergelijkt hetzelfde kloktijdstip vandaag
+     * met morgen — een afspraak van alleen vandaag telt niet. Zonder agenda blijft de oude
+     * vergelijking van de dagtmax overeind.
+     */
+    private suspend fun deliverTempChangeDailyAlert(
+        context: Context,
+        repo: WeatherRepository,
+        forecast: WeatherForecast,
+        lat: Double,
+        lon: Double,
+        model: String,
+        now: Long,
+        today: LocalDate,
+        targetIsTomorrow: Boolean,
+        notificationKey: Int
+    ) {
+        val threshold = SettingsManager.getWeatherTempChangeThreshold(context)
+        val tomorrow = today.plusDays(1)
+        val linkToCalendar = SettingsManager.getWeatherLinkToCalendar(context)
+        val calendarIds = SettingsManager.getWeatherTempChangeCalendarIds(context)
+
+        if (linkToCalendar && calendarIds.isNotEmpty()) {
+            val events = getUpcomingWakeUpEvents(context, CalendarView.NEXT_7_DAYS, calendarIds)
+            val event = pickTempChangeAnchorEvent(
+                events = events,
+                nowMillis = now,
+                dayBeforeEnabled = targetIsTomorrow,
+                sameDayEnabled = !targetIsTomorrow,
+                firstEventEnabled = false
+            ) ?: return
+            val (fromMillis, toMillis) = tempChangeCompareTimes(event.epochMillis, now)
+            val diff = repo.getTemperatureChange(lat, lon, fromMillis, toMillis, model).getOrNull() ?: return
+            if (kotlin.math.abs(diff) < threshold) return
+            val targetTemp = repo.getWeatherForTime(lat, lon, toMillis, model).getOrNull()?.temperature
+                ?: return
+            val day = weatherAlertDayFor(toMillis, now)
+            val message = LanguageManager.getString("weather_around_event")
+                .replace("{combined}", formatTempChangeMessage(diff, threshold))
+                .replace("{event}", event.label)
+            WeatherAlertWorker.deliverAlert(
+                context,
+                formatTempChangeTitle(context, targetTemp, day),
+                message,
+                notificationKey = notificationKey
+            )
+            return
+        }
+
+        val maxToday = computeMaxTempForDate(forecast, today) ?: return
+        val maxTomorrow = computeMaxTempForDate(forecast, tomorrow) ?: return
+        val diff = maxTomorrow - maxToday
+        if (kotlin.math.abs(diff) < threshold) return
+        WeatherAlertWorker.deliverAlert(
+            context,
+            formatTempChangeTitle(context, maxTomorrow, WeatherAlertDay.TOMORROW),
+            formatTempChangeMessage(diff, threshold),
+            notificationKey = notificationKey
+        )
     }
 }

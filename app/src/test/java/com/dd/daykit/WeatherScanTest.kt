@@ -338,6 +338,81 @@ class WeatherScanTest {
         assertEquals(63, rain.weatherCode)
     }
 
+    // ── Temperatuurwissel: anker-afspraak (dag van tevoren vs vandaag) ────────────────────────
+
+    private fun eventAt(iso: String, label: String = "fietsen naar huis") =
+        AlarmItem(id = epochAt(iso), epochMillis = epochAt(iso), label = label)
+
+    @Test
+    fun dag_van_tevoren_negeert_afspraak_van_alleen_vandaag() {
+        val now = epochAt("2026-09-15T13:00")
+        val todayOnly = listOf(eventAt("2026-09-15T15:00"))
+        assertNull(
+            pickTempChangeAnchorEvent(
+                todayOnly, now,
+                dayBeforeEnabled = true, sameDayEnabled = false, firstEventEnabled = false
+            )
+        )
+    }
+
+    @Test
+    fun dag_van_tevoren_pakt_afspraak_van_morgen_niet_van_vandaag() {
+        val now = epochAt("2026-09-15T13:00")
+        val events = listOf(
+            eventAt("2026-09-15T15:00", "vandaag fietsen"),
+            eventAt("2026-09-16T15:00", "morgen fietsen")
+        )
+        val picked = pickTempChangeAnchorEvent(
+            events, now,
+            dayBeforeEnabled = true, sameDayEnabled = false, firstEventEnabled = false
+        )
+        assertEquals("morgen fietsen", picked?.label)
+        assertEquals(epochAt("2026-09-16T15:00"), picked?.epochMillis)
+    }
+
+    @Test
+    fun dag_van_tevoren_toont_melding_als_alleen_morgen_een_afspraak_heeft() {
+        val now = epochAt("2026-09-15T13:00")
+        val tomorrowOnly = listOf(eventAt("2026-09-16T15:00"))
+        val picked = pickTempChangeAnchorEvent(
+            tomorrowOnly, now,
+            dayBeforeEnabled = true, sameDayEnabled = false, firstEventEnabled = false
+        )
+        assertEquals(epochAt("2026-09-16T15:00"), picked?.epochMillis)
+    }
+
+    @Test
+    fun zelfde_dag_pakt_afspraak_van_vandaag_niet_van_morgen() {
+        val now = epochAt("2026-09-15T13:00")
+        val events = listOf(
+            eventAt("2026-09-15T15:00", "vandaag"),
+            eventAt("2026-09-16T15:00", "morgen")
+        )
+        val picked = pickTempChangeAnchorEvent(
+            events, now,
+            dayBeforeEnabled = false, sameDayEnabled = true, firstEventEnabled = false
+        )
+        assertEquals("vandaag", picked?.label)
+    }
+
+    @Test
+    fun vergelijking_bij_afspraak_morgen_gebruikt_dezelfde_kloktijd_vandaag() {
+        val now = epochAt("2026-09-15T13:00")
+        val event = epochAt("2026-09-16T15:00")
+        val (from, to) = tempChangeCompareTimes(event, now)
+        assertEquals(epochAt("2026-09-15T15:00"), from)
+        assertEquals(event, to)
+    }
+
+    @Test
+    fun vergelijking_bij_afspraak_vandaag_kijkt_naar_dezelfde_kloktijd_morgen() {
+        val now = epochAt("2026-09-15T13:00")
+        val event = epochAt("2026-09-15T15:00")
+        val (from, to) = tempChangeCompareTimes(event, now)
+        assertEquals(event, from)
+        assertEquals(epochAt("2026-09-16T15:00"), to)
+    }
+
     // ── Hulpjes ──────────────────────────────────────────────────────────────────────────────
 
     /** Forecast waarin de opgegeven uur-indexen echte regen hebben (80%, matige regen, 1 mm). */
